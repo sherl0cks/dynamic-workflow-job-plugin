@@ -19,17 +19,21 @@ import com.rhc.automation.model.Engagement;
 import com.rhc.automation.model.OpenshiftCluster;
 import com.rhc.automation.model.Project;
 
-/**
- * All implementations of this class maintain state. Create a new instance of all implementations for each use.
- * 
- * http://butunclebob.com/ArticleS.UncleBob.IuseVisitor
- */
-public interface Visitor {
+public class VisitPlanner {
 
-	public void visit( Engagement engagement );
-	public void visit( OpenshiftCluster cluster );
-	public void visit( Project project );
-	
-	public String getPipelineScript();
-	
+	public static final String BUILD_ENV_ERR = "The first project in a cluster MUST be a buildEnvironment. This restriction will be resolved by TODO https://github.com/rht-labs/api-design/issues/23";
+
+	public static void orchestrateVisit( Visitor visitor, Engagement engagement){
+		visitor.visit( engagement );
+		for ( OpenshiftCluster cluster : engagement.getOpenshiftClusters() ){
+			visitor.visit( cluster );
+			for ( int i=0; i < cluster.getOpenshiftResources().getProjects().size(); i++ ){
+				Project project = cluster.getOpenshiftResources().getProjects().get( i );
+				if ( i == 0 && project.getBuildEnvironment() == false ){
+					throw new RuntimeException( BUILD_ENV_ERR );
+				}
+				visitor.visit( project );
+			}
+		}
+	}
 }
