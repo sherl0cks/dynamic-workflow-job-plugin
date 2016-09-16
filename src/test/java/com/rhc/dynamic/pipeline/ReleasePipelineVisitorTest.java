@@ -67,6 +67,21 @@ public class ReleasePipelineVisitorTest {
 	}
 	
 	@Test
+	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithCustomBuildImageCommands() throws IOException {
+		// given
+		Engagement engagement = buildSingleClusterMultiProjectEngagementWithCustomBuildImageCommands();
+		Visitor visitor = new ReleasePipelineVisitor(APPLICATION_NAME);
+
+		// when
+		VisitPlanner.orchestrateVisit(visitor, engagement);
+
+		// then
+		String script = visitor.getPipelineScript();
+		LOGGER.debug("shouldCorrectlyCreateSingleClusterMultiProjectScriptWithCustomBuildImageCommands() \n\n" + script);
+		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptCustomImageCommand.groovy"), removeWhiteSpace(script));
+	}
+	
+	@Test
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithMvn() throws IOException {
 		// given
 		Engagement engagement = buildSingleClusterMultiProjectEngagementWithMvn();
@@ -137,7 +152,7 @@ public class ReleasePipelineVisitorTest {
 	}
 
 	/**
-	 * Hack Alert: scpTpe for buildTool, scmRef for buildCommands
+	 * Hack Alert: scpTpe for buildTool, scmRef for buildAppCommands
 	 * 
 	 * @return
 	 */
@@ -145,6 +160,17 @@ public class ReleasePipelineVisitorTest {
 		Engagement engagement = buildSingleClusterMultiProjectEngagement();
 		Application app = engagement.getOpenshiftClusters().get(0).getOpenshiftResources().getProjects().get(0).getApps().get(0);
 		app.scmType("").scmRef("customCommand,customCommand with arguments");
+		return engagement;
+	}
+	
+	/**
+	 * Hack alert: using baseImageRef for buildImageCommand
+	 * @return
+	 */
+	private Engagement buildSingleClusterMultiProjectEngagementWithCustomBuildImageCommands() {
+		Engagement engagement = buildSingleClusterMultiProjectEngagement();
+		Application app = engagement.getOpenshiftClusters().get(0).getOpenshiftResources().getProjects().get(0).getApps().get(0);
+		app.scmType("").scmRef("customCommand,customCommand with arguments").baseImageTag("customCommand,customCommand with arguments");
 		return engagement;
 	}
 	
@@ -166,9 +192,9 @@ public class ReleasePipelineVisitorTest {
 		Engagement engagement = buildSingleClusterEngagement();
 		Application devApp = new Application().name(APPLICATION_NAME).contextDir("build-home-dir");
 		Project dev = new Project().buildEnvironment(true).name("dev-project").addAppsItem(devApp);
-		Project stage = new Project().buildEnvironment(false).name("stage-project");
-		Project prod = new Project().buildEnvironment(false).name("prod-project");
-		OpenshiftResources resources = new OpenshiftResources().addProjectsItem(dev).addProjectsItem(stage).addProjectsItem(prod);
+//		Project stage = new Project().buildEnvironment(false).name("stage-project");
+//		Project prod = new Project().buildEnvironment(false).name("prod-project");
+		OpenshiftResources resources = new OpenshiftResources().addProjectsItem(dev);//.addProjectsItem(stage).addProjectsItem(prod);
 		engagement.getOpenshiftClusters().get(0).openshiftResources(resources);
 
 		return engagement;

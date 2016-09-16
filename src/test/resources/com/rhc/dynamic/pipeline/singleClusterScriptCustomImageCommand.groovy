@@ -16,6 +16,7 @@ node {
 	}
 	
 	stage 'Build Image and Deploy to Dev'
-	echo 'No buildImageCommands, using default OpenShift image build and deploy'
-	oc.startBuildAndWaitUntilComplete( 'cool-application-name', 'dev-project' )
+	echo 'Found buildImageCommands, executing in shell'
+	sh 'customCommand'
+	sh 'customCommand with arguments'
 }

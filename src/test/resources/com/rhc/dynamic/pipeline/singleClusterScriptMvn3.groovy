@@ -12,4 +12,8 @@ node {
 	echo 'Using build tool: mvn-3'
 	def toolHome = tool 'mvn-3'
 	sh "${toolHome}/bin/mvn clean deploy"
+	
+	stage 'Build Image and Deploy to Dev'
+	echo 'No buildImageCommands, using default OpenShift image build and deploy'
+	oc.startBuildAndWaitUntilComplete( 'cool-application-name', 'dev-project' )
 }

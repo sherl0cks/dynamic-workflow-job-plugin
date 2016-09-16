@@ -29,6 +29,8 @@ public class VisitPlanner {
 			visitor.visit( cluster );
 			for ( int i=0; i < cluster.getOpenshiftResources().getProjects().size(); i++ ){
 				Project project = cluster.getOpenshiftResources().getProjects().get( i );
+				
+				// HACK ALERT
 				if ( i == 0 && project.getBuildEnvironment() == false ){
 					throw new RuntimeException( BUILD_ENV_ERR );
 				}
