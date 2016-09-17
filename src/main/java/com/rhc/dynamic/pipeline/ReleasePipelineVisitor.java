@@ -38,6 +38,9 @@ public class ReleasePipelineVisitor implements Visitor {
 	private static final Set<String> SUPPORTED_BUILD_TOOLS = new HashSet<String>(Arrays.asList("node-0.10", "node-4", "mvn-3"));
 	private final String applicationName;
 	private StringBuilder script;
+	private OpenshiftCluster lastUsedCluster;
+	private Project lastUsedProject;
+	private String[] cachedDeployImageCommands;
 
 	public ReleasePipelineVisitor(String applicationName) {
 		initializeScript();
@@ -56,16 +59,50 @@ public class ReleasePipelineVisitor implements Visitor {
 		// Login to OpenShift and it's docker image registry
 		script.append("  oc.login( '").append(cluster.getOpenshiftHostEnv()).append("' )\n");
 		script.append("  docker.login( '").append(cluster.getImageRegistry().getHost()).append("', oc.getTrimmedUserToken() )\n\n");
+		lastUsedCluster = cluster;
 	}
 
 	@Override
 	public void visit(Project project) {
 		LOGGER.debug("visiting project: " + project.getName());
 
-		if (project.getBuildEnvironment() == true) {
+		if (project.getBuildEnvironment() != null && project.getBuildEnvironment() == true) {
 			createBuildAppScript(project);
 			createBuildAndDeployImageScript(project);
+			cachedDeployImageCommands = getDeployImageCommands( getSelectedApplication(project) );
+		} else if (project.getPromotionEnvironment() != null && project.getPromotionEnvironment() == true) {
+			createPromotionScript(project);
+		} else {
+			throw new RuntimeException("Environment must be declared a build or promotion environment");
 		}
+		lastUsedProject = project;
+	}
+
+	private void createPromotionScript(Project project) {
+		script.append("\n  stage 'Deploy to ").append(project.getName()).append("' \n");
+		script.append("  input 'Deploy to ").append(project.getName()).append("?'\n");
+		
+		if ( cachedDeployImageCommands == null ){
+			
+		// TODO this where we can support image tags that aren't latest
+		script.append("  def currentImageRepositoryWithVersion = '").append(
+				buildDockerRepositoryStringWithVersion(lastUsedCluster.getImageRegistry().getHost(), lastUsedProject.getName(), applicationName, "latest"))
+				.append("'\n");
+		script.append("  def newImageRepositoryWithVersion = '").append(
+				buildDockerRepositoryStringWithVersion(lastUsedCluster.getImageRegistry().getHost(), project.getName(), applicationName, "latest"))
+				.append("'\n");
+		script.append("  docker.promoteImageBetweenRepositories( currentImageRepositoryWithVersion, newImageRepositoryWithVersion )\n");
+		} else {
+			for (int i = 0; i < cachedDeployImageCommands.length; i++) {
+				script.append("  sh '").append(cachedDeployImageCommands[i]).append("' \n");
+			}
+		}
+	}
+
+	private String buildDockerRepositoryStringWithVersion(String host, String namespace, String imageName, String imageVersion) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(host).append("/").append(namespace).append("/").append(imageName).append(":").append(imageVersion);
+		return sb.toString();
 	}
 
 	/**
@@ -77,14 +114,14 @@ public class ReleasePipelineVisitor implements Visitor {
 
 		script.append("\n  stage 'Build Image and Deploy to Dev'\n");
 		Application app = getSelectedApplication(project);
-		if (app.getBaseImageTag() == null || app.getBaseImageTag().isEmpty()) {
+		if (getBuildImageCommands(app) == null) {
 			script.append("  echo 'No buildImageCommands, using default OpenShift image build and deploy'\n");
 			createDefaultOpenShiftBuildAndDeployScript(project);
 		} else {
 			script.append("  echo 'Found buildImageCommands, executing in shell'\n");
-			String[] commands = app.getBaseImageTag().split(",");
-			for (int i=0; i<commands.length; i++){
-				script.append("  sh '").append( commands[i] ).append("' \n");
+			String[] commands = getBuildImageCommands(app);
+			for (int i = 0; i < commands.length; i++) {
+				script.append("  sh '").append(commands[i]).append("' \n");
 			}
 		}
 	}
@@ -111,10 +148,9 @@ public class ReleasePipelineVisitor implements Visitor {
 		// we don't find it, throw an error
 		throw new RuntimeException("No apps in project " + project.getName() + " have the name " + applicationName);
 	}
-	
 
 	private void createDefaultOpenShiftBuildAndDeployScript(Project project) {
-		script.append( "  oc.startBuildAndWaitUntilComplete( '").append( applicationName ).append("', '").append( project.getName() ).append("' )\n");
+		script.append("  oc.startBuildAndWaitUntilComplete( '").append(applicationName).append("', '").append(project.getName()).append("' )\n");
 	}
 
 	/**
@@ -158,6 +194,26 @@ public class ReleasePipelineVisitor implements Visitor {
 			}
 
 		}
+	}
+
+	/**
+	 * This exists only to support baseImageTag hack which is supporting build
+	 * image and deploy image commands for the moment
+	 */
+	private String[] getBuildImageCommands(Application app) {
+		if (app.getBaseImageTag() == null || app.getBaseImageTag().isEmpty()) {
+			return null;
+		}
+		String[] commandSet = app.getBaseImageTag().split(":");
+		return commandSet[0].split(",");
+	}
+
+	private String[] getDeployImageCommands(Application app) {
+		if (app.getBaseImageTag() == null || app.getBaseImageTag().isEmpty()) {
+			return null;
+		}
+		String[] commandSet = app.getBaseImageTag().split(":");
+		return commandSet[1].split(",");
 	}
 
 	@Override

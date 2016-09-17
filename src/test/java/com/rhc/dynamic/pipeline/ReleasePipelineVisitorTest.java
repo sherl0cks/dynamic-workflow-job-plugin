@@ -65,9 +65,9 @@ public class ReleasePipelineVisitorTest {
 		LOGGER.debug("shouldCorrectlyCreateSingleClusterMultiProjectScriptNoBuildTool() \n\n" + script);
 		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptNoBuildTool.groovy"), removeWhiteSpace(script));
 	}
-	
+
 	@Test
-	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithCustomBuildImageCommands() throws IOException {
+	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithCustomBuildImageAndCustomDeployCommands() throws IOException {
 		// given
 		Engagement engagement = buildSingleClusterMultiProjectEngagementWithCustomBuildImageCommands();
 		Visitor visitor = new ReleasePipelineVisitor(APPLICATION_NAME);
@@ -78,9 +78,9 @@ public class ReleasePipelineVisitorTest {
 		// then
 		String script = visitor.getPipelineScript();
 		LOGGER.debug("shouldCorrectlyCreateSingleClusterMultiProjectScriptWithCustomBuildImageCommands() \n\n" + script);
-		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptCustomImageCommand.groovy"), removeWhiteSpace(script));
+		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptCustomCommands.groovy"), removeWhiteSpace(script));
 	}
-	
+
 	@Test
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithMvn() throws IOException {
 		// given
@@ -108,7 +108,7 @@ public class ReleasePipelineVisitorTest {
 			Assert.fail("did not throw error");
 		} catch (RuntimeException e) {
 			// then
-			if (e.getMessage() != null && e.getMessage().contains("gradle-3 is currently unsupported") ) {
+			if (e.getMessage() != null && e.getMessage().contains("gradle-3 is currently unsupported")) {
 				// do nothing, this is desired behavior
 			} else {
 				Assert.fail("this is the wrong exception " + e.getMessage());
@@ -159,21 +159,23 @@ public class ReleasePipelineVisitorTest {
 	private Engagement buildSingleClusterMultiProjectEngagementNoBuildTool() {
 		Engagement engagement = buildSingleClusterMultiProjectEngagement();
 		Application app = engagement.getOpenshiftClusters().get(0).getOpenshiftResources().getProjects().get(0).getApps().get(0);
-		app.scmType("").scmRef("customCommand,customCommand with arguments");
+		app.scmType("").scmRef("customBuildAppCommand,customBuildAppCommand with arguments");
 		return engagement;
 	}
-	
+
 	/**
 	 * Hack alert: using baseImageRef for buildImageCommand
+	 * 
 	 * @return
 	 */
 	private Engagement buildSingleClusterMultiProjectEngagementWithCustomBuildImageCommands() {
 		Engagement engagement = buildSingleClusterMultiProjectEngagement();
 		Application app = engagement.getOpenshiftClusters().get(0).getOpenshiftResources().getProjects().get(0).getApps().get(0);
-		app.scmType("").scmRef("customCommand,customCommand with arguments").baseImageTag("customCommand,customCommand with arguments");
+		app.scmType("").scmRef("customBuildAppCommand,customBuildAppCommand with arguments")
+				.baseImageTag("customBuildImageCommand,customBuildImageCommand with arguments:customDeployImageCommand,customDeployImageCommand with arguments");
 		return engagement;
 	}
-	
+
 	private Engagement buildSingleClusterMultiProjectEngagementWithMvn() {
 		Engagement engagement = buildSingleClusterMultiProjectEngagement();
 		Application app = engagement.getOpenshiftClusters().get(0).getOpenshiftResources().getProjects().get(0).getApps().get(0);
@@ -191,10 +193,12 @@ public class ReleasePipelineVisitorTest {
 	private Engagement buildSingleClusterMultiProjectEngagement() {
 		Engagement engagement = buildSingleClusterEngagement();
 		Application devApp = new Application().name(APPLICATION_NAME).contextDir("build-home-dir");
+		Application stageApp = new Application().name(APPLICATION_NAME);
+		Application prodApp = new Application().name(APPLICATION_NAME);
 		Project dev = new Project().buildEnvironment(true).name("dev-project").addAppsItem(devApp);
-//		Project stage = new Project().buildEnvironment(false).name("stage-project");
-//		Project prod = new Project().buildEnvironment(false).name("prod-project");
-		OpenshiftResources resources = new OpenshiftResources().addProjectsItem(dev);//.addProjectsItem(stage).addProjectsItem(prod);
+		Project stage = new Project().promotionEnvironment(true).name("stage-project").addAppsItem(stageApp);
+		Project prod = new Project().promotionEnvironment(true).name("prod-project").addAppsItem(prodApp);
+		OpenshiftResources resources = new OpenshiftResources().addProjectsItem(dev).addProjectsItem(stage).addProjectsItem(prod);
 		engagement.getOpenshiftClusters().get(0).openshiftResources(resources);
 
 		return engagement;
