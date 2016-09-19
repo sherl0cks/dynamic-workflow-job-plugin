@@ -1,0 +1,35 @@
+{
+	"id": null,
+	"name": null,
+	"startDate": null,
+	"endDate": null,
+	"openshiftClusters": [
+		{
+			"id": 1,
+			"labels": {
+				
+			},
+			"openshiftResources": {
+				"id": null,
+				"projects": [
+					{
+						"id": null,
+						"displayName": null,
+						"name": null,
+						"buildEnvironment": false,
+						"promotionEnvironment": null,
+						"apps": [],
+						"userToRole": []
+					}
+				]
+			},
+			"openshiftHostEnv": "master.openshift.redhat.com",
+			"imageRegistry": {
+				"id": null,
+				"host": "registry.apps.redhat.com"
+			}
+		}
+	],
+	"team": []
+}
+

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core">
+    <p>
+        The <code>dynamicPipeline</code> offers a simple API to retrieve a generic JSON model of your pipeline from a config file or a REST endpoint and then generate Jenkins pipeline script for using the information in the model. The model is defined using Swagger in <a href="https://github.com/rht-labs/api-design">this repository</a>. 
+    </p>
+
+</j:jelly>

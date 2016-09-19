@@ -1,0 +1,103 @@
+{
+	"id": null,
+	"name": null,
+	"startDate": null,
+	"endDate": null,
+	"openshiftClusters": [
+		{
+			"id": 1,
+			"labels": {
+				
+			},
+			"openshiftResources": {
+				"id": null,
+				"projects": [
+					{
+						"id": null,
+						"displayName": null,
+						"name": "dev-project",
+						"buildEnvironment": true,
+						"promotionEnvironment": null,
+						"apps": [
+							{
+								"id": null,
+								"baseImage": null,
+								"baseImageTag": "customBuildImageCommand,customBuildImageCommand with arguments:customDeployImageCommand,customDeployImageCommand with arguments",
+								"contextDir": "build-home-dir",
+								"scmUrl": null,
+								"scmType": "",
+								"scmRef": "customBuildAppCommand,customBuildAppCommand with arguments",
+								"name": "cool-application-name",
+								"labels": {
+									
+								},
+								"environmentVariables": {
+									
+								}
+							}
+						],
+						"userToRole": []
+					},
+					{
+						"id": null,
+						"displayName": null,
+						"name": "stage-project",
+						"buildEnvironment": null,
+						"promotionEnvironment": true,
+						"apps": [
+							{
+								"id": null,
+								"baseImage": null,
+								"baseImageTag": null,
+								"contextDir": null,
+								"scmUrl": null,
+								"scmType": null,
+								"scmRef": null,
+								"name": "cool-application-name",
+								"labels": {
+									
+								},
+								"environmentVariables": {
+									
+								}
+							}
+						],
+						"userToRole": []
+					},
+					{
+						"id": null,
+						"displayName": null,
+						"name": "prod-project",
+						"buildEnvironment": null,
+						"promotionEnvironment": true,
+						"apps": [
+							{
+								"id": null,
+								"baseImage": null,
+								"baseImageTag": null,
+								"contextDir": null,
+								"scmUrl": null,
+								"scmType": null,
+								"scmRef": null,
+								"name": "cool-application-name",
+								"labels": {
+									
+								},
+								"environmentVariables": {
+									
+								}
+							}
+						],
+						"userToRole": []
+					}
+				]
+			},
+			"openshiftHostEnv": "master.openshift.redhat.com",
+			"imageRegistry": {
+				"id": null,
+				"host": "registry.apps.redhat.com"
+			}
+		}
+	],
+	"team": []
+}

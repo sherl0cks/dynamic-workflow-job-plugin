@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jenkinsci.plugins.dynamic.workflow.job;
+package com.rhc.dynamic.pipeline;
 
 import javax.annotation.Nonnull;
 

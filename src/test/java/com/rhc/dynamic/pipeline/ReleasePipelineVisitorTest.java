@@ -15,96 +15,126 @@
  */
 package com.rhc.dynamic.pipeline;
 
+import static org.mockito.Mockito.verify;
+
 import java.io.IOException;
-import java.util.ArrayList;
 
 import org.apache.commons.io.IOUtils;
+import org.jenkinsci.plugins.workflow.cps.CpsScript;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.rhc.automation.model.Application;
-import com.rhc.automation.model.Engagement;
-import com.rhc.automation.model.ImageRegistry;
-import com.rhc.automation.model.OpenshiftCluster;
-import com.rhc.automation.model.OpenshiftResources;
-import com.rhc.automation.model.Project;
-
+/**
+ * We're using mockito to stub out Jenkins interactions. These links should
+ * explain the mechanism in play:
+ * {@link http://site.mockito.org/mockito/docs/current/org/mockito/junit/MockitoRule.html}
+ * {@link http://site.mockito.org/mockito/docs/current/org/mockito/Mockito.html#15}
+ */
 public class ReleasePipelineVisitorTest {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("ReleasePipelineVisitorTest");
 	private static final String APPLICATION_NAME = "cool-application-name";
+	private static final String NO_BUILD_TOOL_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterMultiProjectNoBuildTool.json";
+	private static final String CUSTOM_BUILD_IMAGE_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterMultiProjectWithCustomBuildImageCommands.json";
+	private static final String MVN_BUILD_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterMultiProjectWithMvn.json";
+	private static final String UNSUPPORTED_BUILD_TOOL_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterMultiProjectWithUnsupportedBuildTool.json";
+	private static final String PROMOTION_ENV_FIRST_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterWithPromotionEnvironmentFirst.json";
+
+	@Mock
+	private CpsScript mockScript;
+
+	@Rule
+	public MockitoRule rule = MockitoJUnit.rule();
 
 	@Test
-	public void shouldCorrectlyCreateInitializedAndCompletedScript() throws IOException {
+	public void shouldFailWhenNoConfigurationIsProvided() throws IOException {
 		// given
-		Engagement engagement = buildEmptyEngagement();
-		Visitor visitor = new ReleasePipelineVisitor(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withApplicationName(APPLICATION_NAME);
 
 		// when
-		VisitPlanner.orchestrateVisit(visitor, engagement);
+		try {
+			factory.generatePipelineScript();
+			Assert.fail("An exception should have been thrown");
+		} catch (RuntimeException e) {
+			// then
+			Assert.assertEquals("You must provide a configuration on the classpath, or with HTTP, using withConfiguration()", e.getMessage());
+		}
+	}
 
-		// then
-		String script = visitor.getPipelineScript();
-		LOGGER.debug("shouldCorrectlyCreateInitializedAndCompletedScript() \n\n" + script);
-		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("initializedAndCompletedScript.groovy"), removeWhiteSpace(script));
+	@Test
+	public void shouldFailWhenNoApplicationNameIsProvided() throws IOException {
+		// given
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(NO_BUILD_TOOL_FILE);
+
+		// when
+		try {
+			factory.generatePipelineScript();
+			Assert.fail("An exception should have been thrown");
+		} catch (RuntimeException e) {
+			// then
+			Assert.assertEquals("You must provide a name for this application using withApplicationName()", e.getMessage());
+		}
 	}
 
 	@Test
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptNoBuildTool() throws IOException {
 		// given
-		Engagement engagement = buildSingleClusterMultiProjectEngagementNoBuildTool();
-		Visitor visitor = new ReleasePipelineVisitor(APPLICATION_NAME);
+		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(NO_BUILD_TOOL_FILE).withApplicationName(APPLICATION_NAME);
 
 		// when
-		VisitPlanner.orchestrateVisit(visitor, engagement);
+		factory.generateAndExecutePipelineScript();
 
 		// then
-		String script = visitor.getPipelineScript();
-		LOGGER.debug("shouldCorrectlyCreateSingleClusterMultiProjectScriptNoBuildTool() \n\n" + script);
-		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptNoBuildTool.groovy"), removeWhiteSpace(script));
+		verify(mockScript).evaluate(argument.capture());
+		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptNoBuildTool.groovy"), removeWhiteSpace(argument.getValue()));
 	}
 
 	@Test
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithCustomBuildImageAndCustomDeployCommands() throws IOException {
 		// given
-		Engagement engagement = buildSingleClusterMultiProjectEngagementWithCustomBuildImageCommands();
-		Visitor visitor = new ReleasePipelineVisitor(APPLICATION_NAME);
+		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(CUSTOM_BUILD_IMAGE_FILE)
+				.withApplicationName(APPLICATION_NAME);
 
 		// when
-		VisitPlanner.orchestrateVisit(visitor, engagement);
+		factory.generateAndExecutePipelineScript();
 
 		// then
-		String script = visitor.getPipelineScript();
-		LOGGER.debug("shouldCorrectlyCreateSingleClusterMultiProjectScriptWithCustomBuildImageCommands() \n\n" + script);
-		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptCustomCommands.groovy"), removeWhiteSpace(script));
+		verify(mockScript).evaluate(argument.capture());
+		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptCustomCommands.groovy"), removeWhiteSpace(argument.getValue()));
 	}
 
 	@Test
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithMvn() throws IOException {
 		// given
-		Engagement engagement = buildSingleClusterMultiProjectEngagementWithMvn();
-		Visitor visitor = new ReleasePipelineVisitor(APPLICATION_NAME);
+		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(MVN_BUILD_FILE).withApplicationName(APPLICATION_NAME);
 
 		// when
-		VisitPlanner.orchestrateVisit(visitor, engagement);
+		factory.generateAndExecutePipelineScript();
 
 		// then
-		String script = visitor.getPipelineScript();
-		LOGGER.debug("shouldCorrectlyCreateSingleClusterMultiProjectScriptWithMvn() \n\n" + script);
-		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptMvn3.groovy"), removeWhiteSpace(script));
+		verify(mockScript).evaluate(argument.capture());
+		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptMvn3.groovy"), removeWhiteSpace(argument.getValue()));
 	}
 
 	@Test
 	public void shouldThrowExceptionForUnsupportedBuildTool() throws IOException {
 		// given
-		Engagement engagement = buildSingleClusterMultiProjectEngagementWithUnsupportedBuildTool();
-		Visitor visitor = new ReleasePipelineVisitor(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(UNSUPPORTED_BUILD_TOOL_FILE)
+				.withApplicationName(APPLICATION_NAME);
 
 		// when
 		try {
-			VisitPlanner.orchestrateVisit(visitor, engagement);
+			factory.generatePipelineScript();
 			Assert.fail("did not throw error");
 		} catch (RuntimeException e) {
 			// then
@@ -119,12 +149,12 @@ public class ReleasePipelineVisitorTest {
 	@Test
 	public void shouldThrowExceptionBecauseFirstProjectIsNotABuildEnv() throws IOException {
 		// given
-		Engagement engagement = buildSingleClusterEngagementWithPromotionEnvironmentFirst();
-		Visitor visitor = new ReleasePipelineVisitor(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(PROMOTION_ENV_FIRST_FILE)
+				.withApplicationName(APPLICATION_NAME);
 
 		// when
 		try {
-			VisitPlanner.orchestrateVisit(visitor, engagement);
+			factory.generatePipelineScript();
 			Assert.fail("did not throw error");
 		} catch (RuntimeException e) {
 			// then
@@ -134,83 +164,6 @@ public class ReleasePipelineVisitorTest {
 				Assert.fail("this is the wrong exception " + e.getMessage());
 			}
 		}
-
-	}
-
-	private Engagement buildEmptyEngagement() {
-		return new Engagement();
-	}
-
-	private Engagement buildSingleClusterEngagement() {
-		Engagement engagement = buildEmptyEngagement();
-		ImageRegistry registry = new ImageRegistry().host("registry.apps.redhat.com");
-		OpenshiftCluster cluster = new OpenshiftCluster().id(1l).openshiftHostEnv("master.openshift.redhat.com").imageRegistry(registry);
-
-		engagement.openshiftClusters(new ArrayList<OpenshiftCluster>()).addOpenshiftClustersItem(cluster);
-
-		return engagement;
-	}
-
-	/**
-	 * Hack Alert: scpTpe for buildTool, scmRef for buildAppCommands
-	 * 
-	 * @return
-	 */
-	private Engagement buildSingleClusterMultiProjectEngagementNoBuildTool() {
-		Engagement engagement = buildSingleClusterMultiProjectEngagement();
-		Application app = engagement.getOpenshiftClusters().get(0).getOpenshiftResources().getProjects().get(0).getApps().get(0);
-		app.scmType("").scmRef("customBuildAppCommand,customBuildAppCommand with arguments");
-		return engagement;
-	}
-
-	/**
-	 * Hack alert: using baseImageRef for buildImageCommand
-	 * 
-	 * @return
-	 */
-	private Engagement buildSingleClusterMultiProjectEngagementWithCustomBuildImageCommands() {
-		Engagement engagement = buildSingleClusterMultiProjectEngagement();
-		Application app = engagement.getOpenshiftClusters().get(0).getOpenshiftResources().getProjects().get(0).getApps().get(0);
-		app.scmType("").scmRef("customBuildAppCommand,customBuildAppCommand with arguments")
-				.baseImageTag("customBuildImageCommand,customBuildImageCommand with arguments:customDeployImageCommand,customDeployImageCommand with arguments");
-		return engagement;
-	}
-
-	private Engagement buildSingleClusterMultiProjectEngagementWithMvn() {
-		Engagement engagement = buildSingleClusterMultiProjectEngagement();
-		Application app = engagement.getOpenshiftClusters().get(0).getOpenshiftResources().getProjects().get(0).getApps().get(0);
-		app.scmType("mvn-3").scmRef("mvn clean deploy").contextDir("");
-		return engagement;
-	}
-
-	private Engagement buildSingleClusterMultiProjectEngagementWithUnsupportedBuildTool() {
-		Engagement engagement = buildSingleClusterMultiProjectEngagement();
-		Application app = engagement.getOpenshiftClusters().get(0).getOpenshiftResources().getProjects().get(0).getApps().get(0);
-		app.scmType("gradle-3");
-		return engagement;
-	}
-
-	private Engagement buildSingleClusterMultiProjectEngagement() {
-		Engagement engagement = buildSingleClusterEngagement();
-		Application devApp = new Application().name(APPLICATION_NAME).contextDir("build-home-dir");
-		Application stageApp = new Application().name(APPLICATION_NAME);
-		Application prodApp = new Application().name(APPLICATION_NAME);
-		Project dev = new Project().buildEnvironment(true).name("dev-project").addAppsItem(devApp);
-		Project stage = new Project().promotionEnvironment(true).name("stage-project").addAppsItem(stageApp);
-		Project prod = new Project().promotionEnvironment(true).name("prod-project").addAppsItem(prodApp);
-		OpenshiftResources resources = new OpenshiftResources().addProjectsItem(dev).addProjectsItem(stage).addProjectsItem(prod);
-		engagement.getOpenshiftClusters().get(0).openshiftResources(resources);
-
-		return engagement;
-	}
-
-	private Engagement buildSingleClusterEngagementWithPromotionEnvironmentFirst() {
-		Engagement engagement = buildSingleClusterEngagement();
-		Project project = new Project().buildEnvironment(false);
-		OpenshiftResources resources = new OpenshiftResources().addProjectsItem(project);
-		engagement.getOpenshiftClusters().get(0).openshiftResources(resources);
-
-		return engagement;
 	}
 
 	private String getPipelineScriptFromFileWithoutWhitespace(String fileName) throws IOException {
@@ -218,7 +171,7 @@ public class ReleasePipelineVisitorTest {
 	}
 
 	private String getPipelineScriptFromFile(String fileName) throws IOException {
-		return IOUtils.toString(getClass().getClassLoader().getResourceAsStream("com/rhc/dynamic/pipeline/" + fileName));
+		return IOUtils.toString(getClass().getClassLoader().getResourceAsStream("com/rhc/dynamic/pipeline/scripts/" + fileName));
 	}
 
 	private String removeWhiteSpace(String input) {
