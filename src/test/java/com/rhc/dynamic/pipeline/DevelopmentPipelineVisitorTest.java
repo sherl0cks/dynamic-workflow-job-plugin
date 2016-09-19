@@ -15,9 +15,12 @@
  */
 package com.rhc.dynamic.pipeline;
 
-public class DynamicPipelineFactoryTest {
+/**
+ * We're using mockito to stub out Jenkins interactions. These links should
+ * explain the mechanism in play:
+ * {@link http://site.mockito.org/mockito/docs/current/org/mockito/junit/MockitoRule.html}
+ * {@link http://site.mockito.org/mockito/docs/current/org/mockito/Mockito.html#15}
+ */
+public class DevelopmentPipelineVisitorTest {
 
-	public void shouldProperlyConfigure( ){
-		
-	}
 }

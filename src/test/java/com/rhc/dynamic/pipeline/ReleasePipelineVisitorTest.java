@@ -56,7 +56,7 @@ public class ReleasePipelineVisitorTest {
 	@Test
 	public void shouldFailWhenNoConfigurationIsProvided() throws IOException {
 		// given
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withApplicationName(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withApplicationName(APPLICATION_NAME);
 
 		// when
 		try {
@@ -71,7 +71,7 @@ public class ReleasePipelineVisitorTest {
 	@Test
 	public void shouldFailWhenNoApplicationNameIsProvided() throws IOException {
 		// given
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(NO_BUILD_TOOL_FILE);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(NO_BUILD_TOOL_FILE);
 
 		// when
 		try {
@@ -87,7 +87,7 @@ public class ReleasePipelineVisitorTest {
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptNoBuildTool() throws IOException {
 		// given
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(NO_BUILD_TOOL_FILE).withApplicationName(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(NO_BUILD_TOOL_FILE).withApplicationName(APPLICATION_NAME);
 
 		// when
 		factory.generateAndExecutePipelineScript();
@@ -101,7 +101,7 @@ public class ReleasePipelineVisitorTest {
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithCustomBuildImageAndCustomDeployCommands() throws IOException {
 		// given
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(CUSTOM_BUILD_IMAGE_FILE)
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(CUSTOM_BUILD_IMAGE_FILE)
 				.withApplicationName(APPLICATION_NAME);
 
 		// when
@@ -116,7 +116,7 @@ public class ReleasePipelineVisitorTest {
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithMvn() throws IOException {
 		// given
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(MVN_BUILD_FILE).withApplicationName(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(MVN_BUILD_FILE).withApplicationName(APPLICATION_NAME);
 
 		// when
 		factory.generateAndExecutePipelineScript();
@@ -129,7 +129,7 @@ public class ReleasePipelineVisitorTest {
 	@Test
 	public void shouldThrowExceptionForUnsupportedBuildTool() throws IOException {
 		// given
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(UNSUPPORTED_BUILD_TOOL_FILE)
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(UNSUPPORTED_BUILD_TOOL_FILE)
 				.withApplicationName(APPLICATION_NAME);
 
 		// when
@@ -149,7 +149,7 @@ public class ReleasePipelineVisitorTest {
 	@Test
 	public void shouldThrowExceptionBecauseFirstProjectIsNotABuildEnv() throws IOException {
 		// given
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withConfigurationFile(PROMOTION_ENV_FIRST_FILE)
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(PROMOTION_ENV_FIRST_FILE)
 				.withApplicationName(APPLICATION_NAME);
 
 		// when

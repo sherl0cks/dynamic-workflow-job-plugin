@@ -24,7 +24,7 @@ import groovy.lang.Binding;
 import hudson.Extension;
 
 @Extension
-public class DynamicPipelineDSL extends GlobalVariable {
+public class DynamicPipelineJenkinsDSL extends GlobalVariable {
 
     private static final String DYNAMIC_PIPELINE = "dynamicPipeline";
 
