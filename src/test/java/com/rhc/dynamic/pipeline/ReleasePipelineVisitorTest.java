@@ -31,6 +31,8 @@ import org.mockito.junit.MockitoRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.rhc.dynamic.pipeline.utils.TestUtils;
+
 /**
  * We're using mockito to stub out Jenkins interactions. These links should
  * explain the mechanism in play:
@@ -40,12 +42,6 @@ import org.slf4j.LoggerFactory;
 public class ReleasePipelineVisitorTest {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("ReleasePipelineVisitorTest");
-	private static final String APPLICATION_NAME = "cool-application-name";
-	private static final String NO_BUILD_TOOL_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterMultiProjectNoBuildTool.json";
-	private static final String CUSTOM_BUILD_IMAGE_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterMultiProjectWithCustomBuildImageCommands.json";
-	private static final String MVN_BUILD_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterMultiProjectWithMvn.json";
-	private static final String UNSUPPORTED_BUILD_TOOL_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterMultiProjectWithUnsupportedBuildTool.json";
-	private static final String PROMOTION_ENV_FIRST_FILE = "com/rhc/dynamic/pipeline/requests/singleClusterWithPromotionEnvironmentFirst.json";
 
 	@Mock
 	private CpsScript mockScript;
@@ -56,7 +52,7 @@ public class ReleasePipelineVisitorTest {
 	@Test
 	public void shouldFailWhenNoConfigurationIsProvided() throws IOException {
 		// given
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withApplicationName(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withApplicationName(TestUtils.APPLICATION_NAME);
 
 		// when
 		try {
@@ -71,7 +67,7 @@ public class ReleasePipelineVisitorTest {
 	@Test
 	public void shouldFailWhenNoApplicationNameIsProvided() throws IOException {
 		// given
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(NO_BUILD_TOOL_FILE);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(TestUtils.NO_BUILD_TOOL_FILE);
 
 		// when
 		try {
@@ -87,50 +83,52 @@ public class ReleasePipelineVisitorTest {
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptNoBuildTool() throws IOException {
 		// given
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(NO_BUILD_TOOL_FILE).withApplicationName(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(TestUtils.NO_BUILD_TOOL_FILE)
+				.withApplicationName(TestUtils.APPLICATION_NAME);
 
 		// when
 		factory.generateAndExecutePipelineScript();
 
 		// then
 		verify(mockScript).evaluate(argument.capture());
-		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptNoBuildTool.groovy"), removeWhiteSpace(argument.getValue()));
+		Assert.assertEquals(TestUtils.getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptNoBuildTool.groovy"), TestUtils.removeWhiteSpace(argument.getValue()));
 	}
 
 	@Test
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithCustomBuildImageAndCustomDeployCommands() throws IOException {
 		// given
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(CUSTOM_BUILD_IMAGE_FILE)
-				.withApplicationName(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(TestUtils.CUSTOM_BUILD_IMAGE_FILE)
+				.withApplicationName(TestUtils.APPLICATION_NAME);
 
 		// when
 		factory.generateAndExecutePipelineScript();
 
 		// then
 		verify(mockScript).evaluate(argument.capture());
-		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptCustomCommands.groovy"), removeWhiteSpace(argument.getValue()));
+		Assert.assertEquals(TestUtils.getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptCustomCommands.groovy"), TestUtils.removeWhiteSpace(argument.getValue()));
 	}
 
 	@Test
 	public void shouldCorrectlyCreateSingleClusterMultiProjectScriptWithMvn() throws IOException {
 		// given
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(MVN_BUILD_FILE).withApplicationName(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(TestUtils.MVN_BUILD_FILE)
+				.withApplicationName(TestUtils.APPLICATION_NAME);
 
 		// when
 		factory.generateAndExecutePipelineScript();
 
 		// then
 		verify(mockScript).evaluate(argument.capture());
-		Assert.assertEquals(getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptMvn3.groovy"), removeWhiteSpace(argument.getValue()));
+		Assert.assertEquals(TestUtils.getPipelineScriptFromFileWithoutWhitespace("singleClusterScriptMvn3.groovy"), TestUtils.removeWhiteSpace(argument.getValue()));
 	}
 
 	@Test
 	public void shouldThrowExceptionForUnsupportedBuildTool() throws IOException {
 		// given
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(UNSUPPORTED_BUILD_TOOL_FILE)
-				.withApplicationName(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(TestUtils.UNSUPPORTED_BUILD_TOOL_FILE)
+				.withApplicationName(TestUtils.APPLICATION_NAME);
 
 		// when
 		try {
@@ -149,8 +147,8 @@ public class ReleasePipelineVisitorTest {
 	@Test
 	public void shouldThrowExceptionBecauseFirstProjectIsNotABuildEnv() throws IOException {
 		// given
-		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(PROMOTION_ENV_FIRST_FILE)
-				.withApplicationName(APPLICATION_NAME);
+		DynamicPipelineFactory factory = new DynamicPipelineFactory(mockScript).withReleaseType().withConfigurationFile(TestUtils.PROMOTION_ENV_FIRST_FILE)
+				.withApplicationName(TestUtils.APPLICATION_NAME);
 
 		// when
 		try {
@@ -166,15 +164,5 @@ public class ReleasePipelineVisitorTest {
 		}
 	}
 
-	private String getPipelineScriptFromFileWithoutWhitespace(String fileName) throws IOException {
-		return removeWhiteSpace(getPipelineScriptFromFile(fileName));
-	}
 
-	private String getPipelineScriptFromFile(String fileName) throws IOException {
-		return IOUtils.toString(getClass().getClassLoader().getResourceAsStream("com/rhc/dynamic/pipeline/scripts/" + fileName));
-	}
-
-	private String removeWhiteSpace(String input) {
-		return input.replaceAll("\\s+", "");
-	}
 }

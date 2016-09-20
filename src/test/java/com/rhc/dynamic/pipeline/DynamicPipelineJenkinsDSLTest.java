@@ -32,9 +32,6 @@ import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
-import org.jvnet.hudson.test.recipes.WithPlugin;
-
-import groovy.lang.Binding;
 
 /**
  * These tests show the basic DSL glue to Jenkins. The dynamic pipeline is
