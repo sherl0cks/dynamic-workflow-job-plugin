@@ -1,33 +1,21 @@
 {
-	"id": null,
-	"name": null,
-	"startDate": null,
-	"endDate": null,
-	"openshiftClusters": [
+	"openShiftClusters": [
 		{
 			"id": 1,
 			"labels": {
 				
 			},
-			"openshiftResources": {
-				"id": null,
+			"openShiftResources": {
 				"projects": [
 					{
-						"id": null,
-						"displayName": null,
-						"name": null,
 						"buildEnvironment": false,
-						"promotionEnvironment": null,
 						"apps": [],
 						"userToRole": []
 					}
 				]
 			},
-			"openshiftHostEnv": "master.openshift.redhat.com",
-			"imageRegistry": {
-				"id": null,
-				"host": "registry.apps.redhat.com"
-			}
+			"openShiftHostEnv": "master.openshift.redhat.com",
+			"imageRegistry": "registry.apps.redhat.com"
 		}
 	],
 	"team": []

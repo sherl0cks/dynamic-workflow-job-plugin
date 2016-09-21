@@ -23,11 +23,11 @@ import org.apache.commons.io.IOUtils;
 public class TestUtils {
 
 	public static final String APPLICATION_NAME = "cool-application-name";
-	public static final String NO_BUILD_TOOL_FILE = "singleClusterMultiProjectNoBuildTool.json";
-	public static final String CUSTOM_BUILD_IMAGE_FILE = "singleClusterMultiProjectWithCustomBuildImageCommands.json";
-	public static final String MVN_BUILD_FILE = "singleClusterMultiProjectWithMvn.json";
-	public static final String UNSUPPORTED_BUILD_TOOL_FILE = "singleClusterMultiProjectWithUnsupportedBuildTool.json";
-	public static final String PROMOTION_ENV_FIRST_FILE = "singleClusterWithPromotionEnvironmentFirst.json";
+	public static final String NO_BUILD_TOOL_FILE = "com/rhc/dynamic/pipeline/engagements/singleClusterMultiProjectNoBuildTool.json";
+	public static final String CUSTOM_BUILD_IMAGE_FILE = "com/rhc/dynamic/pipeline/engagements/singleClusterMultiProjectWithCustomBuildImageCommands.json";
+	public static final String MVN_BUILD_FILE = "com/rhc/dynamic/pipeline/engagements/singleClusterMultiProjectWithMvn.json";
+	public static final String UNSUPPORTED_BUILD_TOOL_FILE = "com/rhc/dynamic/pipeline/engagements/singleClusterMultiProjectWithUnsupportedBuildTool.json";
+	public static final String PROMOTION_ENV_FIRST_FILE = "com/rhc/dynamic/pipeline/engagements/singleClusterWithPromotionEnvironmentFirst.json";
 
 	
 	public static String getPipelineScriptFromFileWithoutWhitespace(String fileName) throws IOException {
@@ -42,11 +42,22 @@ public class TestUtils {
 		return input.replaceAll("\\s+", "");
 	}
 	
-	public static String getEngagementStringFromFile(String fileName) throws IOException{
-		InputStream stream = TestUtils.class.getClassLoader().getResourceAsStream("com/rhc/dynamic/pipeline/engagements/" + fileName);
+	public static String getStringFromFile(String fileName) throws IOException{
+		InputStream stream = TestUtils.class.getClassLoader().getResourceAsStream( fileName);
 		if (stream == null ){
 			throw new RuntimeException("could not find file: " + fileName);
 		}
 		return IOUtils.toString(stream);
 	}
+	
+	public static String getEmbeddedServerUrl(int port, String resource){
+		StringBuilder sb = new StringBuilder();
+		sb.append("http://localhost:");
+		sb.append(port);
+		sb.append("/");
+		sb.append(resource);
+		
+		return sb.toString();
+	}
 }
+

@@ -16,7 +16,7 @@
 package com.rhc.dynamic.pipeline;
 
 import com.rhc.automation.model.Engagement;
-import com.rhc.automation.model.OpenshiftCluster;
+import com.rhc.automation.model.OpenShiftCluster;
 import com.rhc.automation.model.Project;
 
 /**
@@ -27,7 +27,7 @@ import com.rhc.automation.model.Project;
 public interface Visitor {
 
 	public void visit( Engagement engagement );
-	public void visit( OpenshiftCluster cluster );
+	public void visit( OpenShiftCluster cluster );
 	public void visit( Project project );
 	
 	public String getPipelineScript();

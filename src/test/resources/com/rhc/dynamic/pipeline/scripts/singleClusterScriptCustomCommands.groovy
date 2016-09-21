@@ -1,12 +1,10 @@
-OpenShiftClient oc = new com.rhc.automation.clients.OpenShiftClient()
-DockerClient docker = new com.rhc.automation.clients.DockerClient()
-
 node {
-	stage 'Code Checkout'
+	stage ('Code Checkout') {
 	checkout scm
+	}
 	
 	stage 'Build App'
-	oc.login( 'master.openshift.redhat.com' )
+	oc.login( 'master.openshift.redhat.com', 'admin', env.OPENSHIFT_PASSWORD )
 	docker.login('registry.apps.redhat.com', oc.getTrimmedUserToken() )
 	
 	dir( 'build-home-dir' ) {

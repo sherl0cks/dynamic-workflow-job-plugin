@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.rhc.automation.model.Application;
 import com.rhc.automation.model.Engagement;
-import com.rhc.automation.model.OpenshiftCluster;
+import com.rhc.automation.model.OpenShiftCluster;
 import com.rhc.automation.model.Project;
 
 /**
@@ -37,9 +37,10 @@ public class ReleasePipelineVisitor implements Visitor {
 	private static final Set<String> SUPPORTED_BUILD_TOOLS = new HashSet<String>(Arrays.asList("node-0.10", "node-4", "mvn-3"));
 	private final String applicationName;
 	private StringBuilder script;
-	private OpenshiftCluster lastUsedCluster;
+	private OpenShiftCluster lastUsedCluster;
 	private Project lastUsedProject;
 	private String[] cachedDeployImageCommands;
+	private int promotionEnvIndex = 0;
 
 	public ReleasePipelineVisitor(String applicationName) {
 		initializeScript();
@@ -52,13 +53,18 @@ public class ReleasePipelineVisitor implements Visitor {
 	}
 
 	@Override
-	public void visit(OpenshiftCluster cluster) {
+	public void visit(OpenShiftCluster cluster) {
 		LOGGER.debug("visiting openShiftCluster: " + cluster.getId());
 
-		// Login to OpenShift and it's docker image registry
-		script.append("  oc.login( '").append(cluster.getOpenshiftHostEnv()).append("' )\n");
-		script.append("  docker.login( '").append(cluster.getImageRegistry().getHost()).append("', oc.getTrimmedUserToken() )\n\n");
+		// to OpenShift and it's docker image registry
+		script.append("  sh 'oc whoami -t > apiTokenOutput.txt'\n");
+		script.append("  String apiToken = readFile( 'apiTokenOutput.txt' ).trim()\n");
+		script.append(String.format("  sh 'oc login %s --insecure-skip-tls-verify=true --username=%s --password=$OPENSHIFT_PASSWORD'\n",
+				cluster.getOpenShiftHostEnv(), cluster.getUserId()));
+		script.append(String.format("  sh \"docker login -u=%s -e=rhc-open-innovation-labs@redhat.com -p=${apiToken} %s\"\n\n", cluster.getUserId(),
+				cluster.getImageRegistry()));
 		lastUsedCluster = cluster;
+
 	}
 
 	@Override
@@ -68,7 +74,7 @@ public class ReleasePipelineVisitor implements Visitor {
 		if (project.getBuildEnvironment() != null && project.getBuildEnvironment() == true) {
 			createBuildAppScript(project);
 			createBuildAndDeployImageScript(project);
-			cachedDeployImageCommands = getDeployImageCommands( getSelectedApplication(project) );
+			cachedDeployImageCommands = getDeployImageCommands(getSelectedApplication(project));
 		} else if (project.getPromotionEnvironment() != null && project.getPromotionEnvironment() == true) {
 			createPromotionScript(project);
 		} else {
@@ -80,22 +86,26 @@ public class ReleasePipelineVisitor implements Visitor {
 	private void createPromotionScript(Project project) {
 		script.append("\n  stage 'Deploy to ").append(project.getName()).append("' \n");
 		script.append("  input 'Deploy to ").append(project.getName()).append("?'\n");
-		
-		if ( cachedDeployImageCommands == null ){
-			
-		// TODO this where we can support image tags that aren't latest
-		script.append("  def currentImageRepositoryWithVersion = '").append(
-				buildDockerRepositoryStringWithVersion(lastUsedCluster.getImageRegistry().getHost(), lastUsedProject.getName(), applicationName, "latest"))
-				.append("'\n");
-		script.append("  def newImageRepositoryWithVersion = '").append(
-				buildDockerRepositoryStringWithVersion(lastUsedCluster.getImageRegistry().getHost(), project.getName(), applicationName, "latest"))
-				.append("'\n");
-		script.append("  docker.promoteImageBetweenRepositories( currentImageRepositoryWithVersion, newImageRepositoryWithVersion )\n");
+
+		if (cachedDeployImageCommands == null) {
+
+			// TODO this where we can support image tags that aren't latest
+			String currentVersionVariableName = "currentImageRepositoryWithVersion" + promotionEnvIndex;
+			String newVersionVariableName = "newImageRepositoryWithVersion" + promotionEnvIndex;
+
+			script.append("  def ").append(currentVersionVariableName).append(" = '")
+					.append(buildDockerRepositoryStringWithVersion(lastUsedCluster.getImageRegistry(), lastUsedProject.getName(), applicationName, "latest"))
+					.append("'\n");
+			script.append("  def ").append(newVersionVariableName).append(" = '")
+					.append(buildDockerRepositoryStringWithVersion(lastUsedCluster.getImageRegistry(), project.getName(), applicationName, "latest"))
+					.append("'\n");
+			script.append("  docker.promoteImageBetweenRepositories( currentImageRepositoryWithVersion, newImageRepositoryWithVersion )\n");
 		} else {
 			for (int i = 0; i < cachedDeployImageCommands.length; i++) {
 				script.append("  sh '").append(cachedDeployImageCommands[i]).append("' \n");
 			}
 		}
+		promotionEnvIndex++;
 	}
 
 	private String buildDockerRepositoryStringWithVersion(String host, String namespace, String imageName, String imageVersion) {
@@ -111,7 +121,7 @@ public class ReleasePipelineVisitor implements Visitor {
 	 */
 	private void createBuildAndDeployImageScript(Project project) {
 
-		script.append("\n  stage 'Build Image and Deploy to Dev'\n");
+		script.append("\n  stage ('Build Image and Deploy to Dev') {\n");
 		Application app = getSelectedApplication(project);
 		if (getBuildImageCommands(app) == null) {
 			script.append("  echo 'No buildImageCommands, using default OpenShift image build and deploy'\n");
@@ -123,6 +133,7 @@ public class ReleasePipelineVisitor implements Visitor {
 				script.append("  sh '").append(commands[i]).append("' \n");
 			}
 		}
+		script.append("  }\n");
 	}
 
 	private void createBuildAppScript(Project project) {
@@ -136,6 +147,7 @@ public class ReleasePipelineVisitor implements Visitor {
 			createBuildCommands(app);
 		}
 
+		script.append("  }\n");
 	}
 
 	private Application getSelectedApplication(Project project) {
@@ -149,7 +161,14 @@ public class ReleasePipelineVisitor implements Visitor {
 	}
 
 	private void createDefaultOpenShiftBuildAndDeployScript(Project project) {
-		script.append("  oc.startBuildAndWaitUntilComplete( '").append(applicationName).append("', '").append(project.getName()).append("' )\n");
+		script.append("  String apiToken = readFile( 'apiTokenOutput.txt' ).trim()\n");
+		script.append(String.format(
+				"  openshiftBuild apiURL: '%s', authToken: apiToken, bldCfg: '%s', checkForTriggeredDeployments: 'true', namespace: '%s', showBuildLogs: 'true'\n",
+				lastUsedCluster.getOpenShiftHostEnv(), applicationName, project.getName()));
+
+		script.append(String.format(
+				"  openshiftVerifyDeployment apiURL: '%s', authToken: apiToken, depCfg: '%s', namespace: '%s', replicaCount: '1', verifyReplicaCount: 'true'\n",
+				lastUsedCluster.getOpenShiftHostEnv(), applicationName, project.getName()));
 	}
 
 	/**
@@ -223,15 +242,15 @@ public class ReleasePipelineVisitor implements Visitor {
 
 	private void initializeScript() {
 		script = new StringBuilder();
-		// TODO replace with OpenShift plugin
-		script.append("OpenShiftClient oc = new com.rhc.automation.clients.OpenShiftClient()\n");
-		// TODO replace with Fabric8 Docker plugin
-		script.append("DockerClient docker = new com.rhc.automation.clients.DockerClient()\n");
-		script.append("\n");
 		script.append("node {\n");
-		script.append("  stage 'Code Checkout'\n");
-		script.append("  checkout scm\n\n");
-		script.append("  stage 'Build App'\n");
+		script.append("  stage ('Code Checkout') {\n ");
+		script.append("  checkout scm\n");
+		script.append("  }\n\n");
+		script.append("  stage ('Build App') {\n"); // this shouldn't be hear.
+													// it should be in build
+													// app, but we need to move
+													// to app centric model
+													// first
 	}
 
 	private void completeScript() {

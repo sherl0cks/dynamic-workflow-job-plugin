@@ -35,7 +35,7 @@ import org.jvnet.hudson.test.TestExtension;
 
 /**
  * These tests show the basic DSL glue to Jenkins. The dynamic pipeline is
- * tested at {@link ReleasePipelineVisitorTest} and
+ * tested at {@link ReleasePipelineVisitorWithConfigFileTest} and
  * {@link DevelopmentPipelineVisitorTest}
  */
 
@@ -59,7 +59,7 @@ public class DynamicPipelineJenkinsDSLTest {
 		WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 		assertEquals(b1, b2.getPreviousBuild());
 		assertEquals(null, b1.getPreviousBuild());
-		r.assertLogContains("0.1.0\n", b1);
+		r.assertLogContains("0.2.0\n", b1);
 	}
 	
 	@TestExtension

@@ -26,18 +26,22 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rhc.automation.model.Engagement;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
 
 public class DynamicPipelineFactory implements Serializable {
 
 	private static final long serialVersionUID = -7772221801921220616L;
 	private static final Logger LOGGER = LoggerFactory.getLogger("DynamicPipelineFactory");
-	public static final String AUTOMATION_API_VERSION = "0.1.0";
+	public static final String AUTOMATION_API_VERSION = "0.2.0";
 
 	private final CpsScript script;
 	private String configFile;
 	private String applicationName;
 	private transient Engagement engagement;
 	private String pipelineType;
+	private transient OkHttpClient client = new OkHttpClient();
 
 	public DynamicPipelineFactory(CpsScript script) {
 		this.script = script;
@@ -51,8 +55,26 @@ public class DynamicPipelineFactory implements Serializable {
 			throw new RuntimeException("Could not find the specified configuration file: " + fileName);
 		}
 		this.configFile = IOUtils.toString(is);
+		LOGGER.debug(this.configFile);
 		engagement = new ObjectMapper().readValue(this.configFile, Engagement.class);
 
+		return this;
+	}
+	
+	public DynamicPipelineFactory withHttpConfiguration( String url ) throws IOException{
+		Request request = new Request.Builder().url(url).build();
+		Response response = client.newCall(request).execute();
+		if ( response.code() != 200 ){
+			throw new RuntimeException ( "The http configuration returned a status code of " + response.code() + ". We only support 200. Here is the response message: " + response.message());
+		} else{
+			InputStream is = response.body().byteStream();
+			if ( is == null){
+				throw new RuntimeException ( "The http configuration response body is null!");
+			}
+			this.configFile = IOUtils.toString(is);
+			LOGGER.debug(this.configFile);
+			engagement = new ObjectMapper().readValue(this.configFile, Engagement.class);
+		}
 		return this;
 	}
 
@@ -90,6 +112,11 @@ public class DynamicPipelineFactory implements Serializable {
 
 	public void generateAndExecutePipelineScript() {
 		String pipelineScript = generatePipelineScript();
+		script.evaluate(pipelineScript);
+	}
+	
+	public void debug(){
+		String pipelineScript = "node{\n stage 'a'\n stage 'b'\n stage 'c'\n}";
 		script.evaluate(pipelineScript);
 	}
 

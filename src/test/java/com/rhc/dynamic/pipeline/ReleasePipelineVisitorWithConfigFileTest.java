@@ -39,7 +39,7 @@ import com.rhc.dynamic.pipeline.utils.TestUtils;
  * {@link http://site.mockito.org/mockito/docs/current/org/mockito/junit/MockitoRule.html}
  * {@link http://site.mockito.org/mockito/docs/current/org/mockito/Mockito.html#15}
  */
-public class ReleasePipelineVisitorTest {
+public class ReleasePipelineVisitorWithConfigFileTest {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("ReleasePipelineVisitorTest");
 
@@ -164,5 +164,6 @@ public class ReleasePipelineVisitorTest {
 		}
 	}
 
+// dynamicPipeline.withReleaseType().withHttpConfiguration('http://localhost:39069/com/rhc/dynamic/pipeline/engagements/singleClusterMultiProjectWithMvn.json').withApplicationName('cool-application-name').generateAndExecutePipelineScript()
 
 }

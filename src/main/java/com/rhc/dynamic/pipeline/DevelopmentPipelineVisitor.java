@@ -16,7 +16,7 @@
 package com.rhc.dynamic.pipeline;
 
 import com.rhc.automation.model.Engagement;
-import com.rhc.automation.model.OpenshiftCluster;
+import com.rhc.automation.model.OpenShiftCluster;
 import com.rhc.automation.model.Project;
 
 public class DevelopmentPipelineVisitor implements Visitor {
@@ -32,7 +32,7 @@ public class DevelopmentPipelineVisitor implements Visitor {
 	}
 
 	@Override
-	public void visit(OpenshiftCluster cluster) {
+	public void visit(OpenShiftCluster cluster) {
 		// TODO Auto-generated method stub
 
 	}

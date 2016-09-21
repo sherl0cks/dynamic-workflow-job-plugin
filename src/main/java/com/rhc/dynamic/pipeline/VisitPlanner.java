@@ -16,7 +16,7 @@
 package com.rhc.dynamic.pipeline;
 
 import com.rhc.automation.model.Engagement;
-import com.rhc.automation.model.OpenshiftCluster;
+import com.rhc.automation.model.OpenShiftCluster;
 import com.rhc.automation.model.Project;
 
 public class VisitPlanner {
@@ -25,10 +25,10 @@ public class VisitPlanner {
 
 	public static void orchestrateVisit( Visitor visitor, Engagement engagement){
 		visitor.visit( engagement );
-		for ( OpenshiftCluster cluster : engagement.getOpenshiftClusters() ){
+		for ( OpenShiftCluster cluster : engagement.getOpenShiftClusters() ){
 			visitor.visit( cluster );
-			for ( int i=0; i < cluster.getOpenshiftResources().getProjects().size(); i++ ){
-				Project project = cluster.getOpenshiftResources().getProjects().get( i );
+			for ( int i=0; i < cluster.getOpenShiftResources().getProjects().size(); i++ ){
+				Project project = cluster.getOpenShiftResources().getProjects().get( i );
 				
 				// HACK ALERT
 				if ( i == 0 && project.getBuildEnvironment() == false ){

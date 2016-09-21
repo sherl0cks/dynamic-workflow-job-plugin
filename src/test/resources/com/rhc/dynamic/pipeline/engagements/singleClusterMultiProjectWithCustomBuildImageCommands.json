@@ -1,30 +1,22 @@
 {
-	"id": null,
-	"name": null,
-	"startDate": null,
-	"endDate": null,
-	"openshiftClusters": [
+	"openShiftClusters": [
 		{
 			"id": 1,
 			"labels": {
 				
 			},
-			"openshiftResources": {
-				"id": null,
+			"openShiftResources": {
 				"projects": [
 					{
-						"id": null,
-						"displayName": null,
 						"name": "dev-project",
 						"buildEnvironment": true,
-						"promotionEnvironment": null,
 						"apps": [
 							{
-								"id": null,
-								"baseImage": null,
 								"baseImageTag": "customBuildImageCommand,customBuildImageCommand with arguments:customDeployImageCommand,customDeployImageCommand with arguments",
+								"buildApplicationCommands": [],
+								"buildImageCommands": [],
+								"deployImageCommands": [],
 								"contextDir": "build-home-dir",
-								"scmUrl": null,
 								"scmType": "",
 								"scmRef": "customBuildAppCommand,customBuildAppCommand with arguments",
 								"name": "cool-application-name",
@@ -39,20 +31,13 @@
 						"userToRole": []
 					},
 					{
-						"id": null,
-						"displayName": null,
 						"name": "stage-project",
-						"buildEnvironment": null,
 						"promotionEnvironment": true,
 						"apps": [
 							{
-								"id": null,
-								"baseImage": null,
-								"baseImageTag": null,
-								"contextDir": null,
-								"scmUrl": null,
-								"scmType": null,
-								"scmRef": null,
+								"buildApplicationCommands": [],
+								"buildImageCommands": [],
+								"deployImageCommands": [],
 								"name": "cool-application-name",
 								"labels": {
 									
@@ -65,20 +50,13 @@
 						"userToRole": []
 					},
 					{
-						"id": null,
-						"displayName": null,
 						"name": "prod-project",
-						"buildEnvironment": null,
 						"promotionEnvironment": true,
 						"apps": [
 							{
-								"id": null,
-								"baseImage": null,
-								"baseImageTag": null,
-								"contextDir": null,
-								"scmUrl": null,
-								"scmType": null,
-								"scmRef": null,
+								"buildApplicationCommands": [],
+								"buildImageCommands": [],
+								"deployImageCommands": [],
 								"name": "cool-application-name",
 								"labels": {
 									
@@ -92,11 +70,9 @@
 					}
 				]
 			},
-			"openshiftHostEnv": "master.openshift.redhat.com",
-			"imageRegistry": {
-				"id": null,
-				"host": "registry.apps.redhat.com"
-			}
+			"openShiftHostEnv": "master.openshift.redhat.com",
+			"imageRegistry": "registry.apps.redhat.com",
+			"userId" : "admin"
 		}
 	],
 	"team": []
