@@ -10,7 +10,7 @@ node {
 	sh "docker login -u=admin -e=rhc-open-innovation-labs@redhat.com -p=${apiToken} registry.apps.redhat.com"
 	
 	dir( 'build-home-dir' ) {
-		echo 'No build tool declared. Any commands will execute directly in the shell.'
+		echo 'Using build tool: sh'
 		sh "customBuildAppCommand"
 		sh "customBuildAppCommand with arguments"
 	}

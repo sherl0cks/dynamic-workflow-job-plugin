@@ -12,12 +12,12 @@
 						"buildEnvironment": true,
 						"apps": [
 							{
-								"buildApplicationCommands": [],
+								"buildApplicationCommands": ["customBuildAppCommand", "customBuildAppCommand with arguments"],
 								"buildImageCommands": [],
 								"deployImageCommands": [],
 								"contextDir": "build-home-dir",
-								"scmType": "",
-								"scmRef": "customBuildAppCommand,customBuildAppCommand with arguments",
+								"buildTool": "sh",
+								"scmRef": "",
 								"name": "cool-application-name",
 								"labels": {
 									

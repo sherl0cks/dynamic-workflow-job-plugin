@@ -17,6 +17,7 @@ package com.rhc.dynamic.pipeline;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -34,12 +35,12 @@ import com.rhc.automation.model.Project;
 public class ReleasePipelineVisitor implements Visitor {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("ReleasePipelineVisitor");
-	private static final Set<String> SUPPORTED_BUILD_TOOLS = new HashSet<String>(Arrays.asList("node-0.10", "node-4", "mvn-3"));
+	private static final Set<String> SUPPORTED_BUILD_TOOLS = new HashSet<String>(Arrays.asList("node-0.10", "node-4", "mvn-3", "sh"));
 	private final String applicationName;
 	private StringBuilder script;
 	private OpenShiftCluster lastUsedCluster;
 	private Project lastUsedProject;
-	private String[] cachedDeployImageCommands;
+	private List<String> cachedDeployImageCommands;
 	private int promotionEnvIndex = 0;
 
 	public ReleasePipelineVisitor(String applicationName) {
@@ -74,7 +75,7 @@ public class ReleasePipelineVisitor implements Visitor {
 		if (project.getBuildEnvironment() != null && project.getBuildEnvironment() == true) {
 			createBuildAppScript(project);
 			createBuildAndDeployImageScript(project);
-			cachedDeployImageCommands = getDeployImageCommands(getSelectedApplication(project));
+			cachedDeployImageCommands = getSelectedApplication(project).getDeployImageCommands();
 		} else if (project.getPromotionEnvironment() != null && project.getPromotionEnvironment() == true) {
 			createPromotionScript(project);
 		} else {
@@ -87,7 +88,7 @@ public class ReleasePipelineVisitor implements Visitor {
 		script.append("\n  stage 'Deploy to ").append(project.getName()).append("' \n");
 		script.append("  input 'Deploy to ").append(project.getName()).append("?'\n");
 
-		if (cachedDeployImageCommands == null) {
+		if (cachedDeployImageCommands == null || cachedDeployImageCommands.isEmpty()) {
 
 			// TODO this where we can support image tags that aren't latest
 			String currentVersionVariableName = "currentImageRepositoryWithVersion" + promotionEnvIndex;
@@ -101,8 +102,8 @@ public class ReleasePipelineVisitor implements Visitor {
 					.append("'\n");
 			script.append("  docker.promoteImageBetweenRepositories( currentImageRepositoryWithVersion, newImageRepositoryWithVersion )\n");
 		} else {
-			for (int i = 0; i < cachedDeployImageCommands.length; i++) {
-				script.append("  sh '").append(cachedDeployImageCommands[i]).append("' \n");
+			for (String command : cachedDeployImageCommands) {
+				script.append("  sh '").append(command).append("' \n");
 			}
 		}
 		promotionEnvIndex++;
@@ -114,23 +115,18 @@ public class ReleasePipelineVisitor implements Visitor {
 		return sb.toString();
 	}
 
-	/**
-	 * HACK ALERT: using baseImageTage for buildImageCommands with , delimiter
-	 * 
-	 * @param project
-	 */
 	private void createBuildAndDeployImageScript(Project project) {
 
 		script.append("\n  stage ('Build Image and Deploy to Dev') {\n");
 		Application app = getSelectedApplication(project);
-		if (getBuildImageCommands(app) == null) {
+		if (app.getBuildImageCommands() == null || app.getBuildImageCommands().isEmpty()) {
 			script.append("  echo 'No buildImageCommands, using default OpenShift image build and deploy'\n");
 			createDefaultOpenShiftBuildAndDeployScript(project);
 		} else {
 			script.append("  echo 'Found buildImageCommands, executing in shell'\n");
-			String[] commands = getBuildImageCommands(app);
-			for (int i = 0; i < commands.length; i++) {
-				script.append("  sh '").append(commands[i]).append("' \n");
+			List<String> commands = app.getBuildImageCommands();
+			for (String command : commands) {
+				script.append("  sh '").append(command).append("' \n");
 			}
 		}
 		script.append("  }\n");
@@ -171,67 +167,35 @@ public class ReleasePipelineVisitor implements Visitor {
 				lastUsedCluster.getOpenShiftHostEnv(), applicationName, project.getName()));
 	}
 
-	/**
-	 * Hack Alert!!! I'm using scmType in lieu of build tool for the time being
-	 * TODO: fix this
-	 */
 	private void createBuildCommands(Application app) {
 
-		if (app.getScmType() == null || app.getScmType().isEmpty()) {
-			script.append("  echo 'No build tool declared. Any commands will execute directly in the shell.'\n");
-			createListOfShellCommandsScript(app, null);
-		} else if (SUPPORTED_BUILD_TOOLS.contains(app.getScmType())) {
-			script.append("  echo 'Using build tool: ").append(app.getScmType()).append("'\n");
-			createListOfShellCommandsScript(app, app.getScmType());
+		if (app.getBuildTool() == null || app.getBuildTool().isEmpty()) {
+			throw new RuntimeException("A build tool must be set for the application. Currently support tools are: " + SUPPORTED_BUILD_TOOLS);
+		} else if (SUPPORTED_BUILD_TOOLS.contains(app.getBuildTool())) {
+			script.append("  echo 'Using build tool: ").append(app.getBuildTool()).append("'\n");
+			createListOfShellCommandsScript(app, app.getBuildTool());
 		} else {
-			throw new RuntimeException(app.getScmType() + " is currently unsupported. Please select one of " + SUPPORTED_BUILD_TOOLS);
+			throw new RuntimeException(app.getBuildTool() + " is currently unsupported. Please select one of " + SUPPORTED_BUILD_TOOLS);
 		}
 	}
 
-	/**
-	 * Hack alert: scmRef for buildCommands
-	 * 
-	 * @param app
-	 * @param tool
-	 */
 	private void createListOfShellCommandsScript(Application app, String tool) {
-		if (tool != null) {
+		if (tool != null && !tool.isEmpty() && !tool.equals("sh")) {
 			script.append("  def toolHome = tool '").append(tool).append("'\n");
 		}
-		if (app.getScmRef() == null || app.getScmRef().isEmpty()) {
-			throw new RuntimeException(
-					"app.buildCommands cannot be empty. we are currently using scmRef, with comma delimited string for buildCommands. it's a hack and will be fixed soon.");
+		if (app.getBuildApplicationCommands() == null || app.getBuildApplicationCommands().isEmpty()) {
+			throw new RuntimeException("app.buildApplicationCommands cannot be empty");
 		} else {
-			String[] commands = app.getScmRef().split(",");
-			for (int i = 0; i < commands.length; i++) {
+			List<String> commands = app.getBuildApplicationCommands();
+			for (String command : commands) {
 				script.append("  sh \"");
-				if (tool != null) {
+				if (tool != null && !tool.isEmpty() && !tool.equals("sh")) {
 					script.append("${toolHome}/bin/");
 				}
-				script.append(commands[i]).append("\"\n");
+				script.append(command).append("\"\n");
 			}
 
 		}
-	}
-
-	/**
-	 * This exists only to support baseImageTag hack which is supporting build
-	 * image and deploy image commands for the moment
-	 */
-	private String[] getBuildImageCommands(Application app) {
-		if (app.getBaseImageTag() == null || app.getBaseImageTag().isEmpty()) {
-			return null;
-		}
-		String[] commandSet = app.getBaseImageTag().split(":");
-		return commandSet[0].split(",");
-	}
-
-	private String[] getDeployImageCommands(Application app) {
-		if (app.getBaseImageTag() == null || app.getBaseImageTag().isEmpty()) {
-			return null;
-		}
-		String[] commandSet = app.getBaseImageTag().split(":");
-		return commandSet[1].split(",");
 	}
 
 	@Override

@@ -12,12 +12,12 @@
 						"buildEnvironment": true,
 						"apps": [
 							{
-								"buildApplicationCommands": [],
+								"buildApplicationCommands": ["mvn clean deploy"],
 								"buildImageCommands": [],
 								"deployImageCommands": [],
 								"contextDir": "",
-								"scmType": "mvn-3",
-								"scmRef": "mvn clean deploy",
+								"buildTool": "mvn-3",
+								"scmRef": "",
 								"name": "cool-application-name",
 								"labels": {
 									

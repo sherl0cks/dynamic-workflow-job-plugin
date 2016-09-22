@@ -16,7 +16,7 @@
 								"buildImageCommands": [],
 								"deployImageCommands": [],
 								"contextDir": "build-home-dir",
-								"scmType": "gradle-3",
+								"buildTool": "gradle-3",
 								"name": "cool-application-name",
 								"labels": {
 									

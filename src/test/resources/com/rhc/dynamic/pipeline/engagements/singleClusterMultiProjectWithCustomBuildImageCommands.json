@@ -12,13 +12,13 @@
 						"buildEnvironment": true,
 						"apps": [
 							{
-								"baseImageTag": "customBuildImageCommand,customBuildImageCommand with arguments:customDeployImageCommand,customDeployImageCommand with arguments",
-								"buildApplicationCommands": [],
-								"buildImageCommands": [],
-								"deployImageCommands": [],
+								"baseImageTag": "",
+								"buildApplicationCommands": ["customBuildAppCommand","customBuildAppCommand with arguments"],
+								"buildImageCommands": ["customBuildImageCommand","customBuildImageCommand with arguments"],
+								"deployImageCommands": ["customDeployImageCommand","customDeployImageCommand with arguments"],
 								"contextDir": "build-home-dir",
-								"scmType": "",
-								"scmRef": "customBuildAppCommand,customBuildAppCommand with arguments",
+								"buildTool": "sh",
+								"scmRef": "",
 								"name": "cool-application-name",
 								"labels": {
 									
