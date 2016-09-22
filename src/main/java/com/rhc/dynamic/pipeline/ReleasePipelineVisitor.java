@@ -41,7 +41,6 @@ public class ReleasePipelineVisitor implements Visitor {
 	private OpenShiftCluster lastUsedCluster;
 	private Project lastUsedProject;
 	private List<String> cachedDeployImageCommands;
-	private int promotionEnvIndex = 0;
 
 	public ReleasePipelineVisitor(String applicationName) {
 		initializeScript();
@@ -62,8 +61,13 @@ public class ReleasePipelineVisitor implements Visitor {
 		script.append("  String apiToken = readFile( 'apiTokenOutput.txt' ).trim()\n");
 		script.append(String.format("  sh 'oc login %s --insecure-skip-tls-verify=true --username=%s --password=$OPENSHIFT_PASSWORD'\n",
 				cluster.getOpenShiftHostEnv(), cluster.getUserId()));
-		script.append(String.format("  sh \"docker login -u=%s -e=rhc-open-innovation-labs@redhat.com -p=${apiToken} %s\"\n\n", cluster.getUserId(),
-				cluster.getImageRegistry()));
+
+		// docker push/pull/tag is temporarily disabled
+		// https://github.com/rht-labs/api-design/issues/28
+		// script.append(String.format(" sh \"docker login -u=%s
+		// -e=rhc-open-innovation-labs@redhat.com -p=${apiToken} %s\"\n\n",
+		// cluster.getUserId(),
+		// cluster.getImageRegistry()));
 		lastUsedCluster = cluster;
 
 	}
@@ -85,34 +89,27 @@ public class ReleasePipelineVisitor implements Visitor {
 	}
 
 	private void createPromotionScript(Project project) {
-		script.append("\n  stage 'Deploy to ").append(project.getName()).append("' \n");
+		script.append("\n  stage ('Deploy to ").append(project.getName()).append("') {\n");
 		script.append("  input 'Deploy to ").append(project.getName()).append("?'\n");
 
 		if (cachedDeployImageCommands == null || cachedDeployImageCommands.isEmpty()) {
 
 			// TODO this where we can support image tags that aren't latest
-			String currentVersionVariableName = "currentImageRepositoryWithVersion" + promotionEnvIndex;
-			String newVersionVariableName = "newImageRepositoryWithVersion" + promotionEnvIndex;
+			script.append("  String apiToken = readFile( 'apiTokenOutput.txt' ).trim()\n");
+			script.append(String.format(
+					"  openshiftTag apiURL: '%s', authToken: apiToken, destStream: '%s', destTag: 'latest', destinationAuthToken: apiToken, destinationNamespace: '%s', namespace: '%s', srcStream: '%s', srcTag: 'latest'\n",
+					lastUsedCluster.getOpenShiftHostEnv(), applicationName, project.getName(), lastUsedProject.getName(), applicationName));
+			script.append(String.format(
+					"  openshiftVerifyDeployment apiURL: '%s', authToken: apiToken, depCfg: '%s', namespace: '%s'\n",
+							lastUsedCluster.getOpenShiftHostEnv(), applicationName, project.getName()));
 
-			script.append("  def ").append(currentVersionVariableName).append(" = '")
-					.append(buildDockerRepositoryStringWithVersion(lastUsedCluster.getImageRegistry(), lastUsedProject.getName(), applicationName, "latest"))
-					.append("'\n");
-			script.append("  def ").append(newVersionVariableName).append(" = '")
-					.append(buildDockerRepositoryStringWithVersion(lastUsedCluster.getImageRegistry(), project.getName(), applicationName, "latest"))
-					.append("'\n");
-			script.append("  docker.promoteImageBetweenRepositories( currentImageRepositoryWithVersion, newImageRepositoryWithVersion )\n");
 		} else {
 			for (String command : cachedDeployImageCommands) {
 				script.append("  sh '").append(command).append("' \n");
 			}
 		}
-		promotionEnvIndex++;
-	}
-
-	private String buildDockerRepositoryStringWithVersion(String host, String namespace, String imageName, String imageVersion) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(host).append("/").append(namespace).append("/").append(imageName).append(":").append(imageVersion);
-		return sb.toString();
+		
+		script.append("}\n");
 	}
 
 	private void createBuildAndDeployImageScript(Project project) {
@@ -162,8 +159,7 @@ public class ReleasePipelineVisitor implements Visitor {
 				"  openshiftBuild apiURL: '%s', authToken: apiToken, bldCfg: '%s', checkForTriggeredDeployments: 'true', namespace: '%s', showBuildLogs: 'true'\n",
 				lastUsedCluster.getOpenShiftHostEnv(), applicationName, project.getName()));
 
-		script.append(String.format(
-				"  openshiftVerifyDeployment apiURL: '%s', authToken: apiToken, depCfg: '%s', namespace: '%s', replicaCount: '1', verifyReplicaCount: 'true'\n",
+		script.append(String.format("  openshiftVerifyDeployment apiURL: '%s', authToken: apiToken, depCfg: '%s', namespace: '%s'\n",
 				lastUsedCluster.getOpenShiftHostEnv(), applicationName, project.getName()));
 	}
 

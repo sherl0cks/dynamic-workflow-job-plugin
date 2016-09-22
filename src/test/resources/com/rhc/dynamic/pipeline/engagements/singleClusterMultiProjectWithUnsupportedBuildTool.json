@@ -68,8 +68,7 @@
 					}
 				]
 			},
-			"openShiftHostEnv": "master.openshift.redhat.com",
-			"imageRegistry": "registry.apps.redhat.com",
+			"openShiftHostEnv": "10.1.2.2:8443",
 			"userId" : "admin"
 		}
 	],
