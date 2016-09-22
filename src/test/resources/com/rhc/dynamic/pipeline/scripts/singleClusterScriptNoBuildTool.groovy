@@ -3,19 +3,25 @@ node {
 	checkout scm
 	}
 	
-	stage 'Build App'
-	oc.login( 'master.openshift.redhat.com', 'admin', env.OPENSHIFT_PASSWORD  )
-	docker.login('registry.apps.redhat.com', oc.getTrimmedUserToken() )
+	stage ('Build App') {
+	sh 'oc whoami -t > apiTokenOutput.txt'
+	String apiToken = readFile( 'apiTokenOutput.txt' ).trim()
+	sh 'oc login master.openshift.redhat.com --insecure-skip-tls-verify=true --username=admin --password=$OPENSHIFT_PASSWORD'
+	sh "docker login -u=admin -e=rhc-open-innovation-labs@redhat.com -p=${apiToken} registry.apps.redhat.com"
 	
 	dir( 'build-home-dir' ) {
 		echo 'No build tool declared. Any commands will execute directly in the shell.'
 		sh "customBuildAppCommand"
 		sh "customBuildAppCommand with arguments"
 	}
+	}
 	
-	stage 'Build Image and Deploy to Dev'
+	stage ('Build Image and Deploy to Dev') {
 	echo 'No buildImageCommands, using default OpenShift image build and deploy'
-	oc.startBuildAndWaitUntilComplete( 'cool-application-name', 'dev-project' )
+	String apiToken = readFile( 'apiTokenOutput.txt' ).trim()
+  	openshiftBuild apiURL: 'master.openshift.redhat.com', authToken: apiToken, bldCfg: 'cool-application-name', checkForTriggeredDeployments: 'true', namespace: 'dev-project', showBuildLogs: 'true'
+	openshiftVerifyDeployment apiURL: 'master.openshift.redhat.com', authToken: apiToken, depCfg: 'cool-application-name', namespace: 'dev-project', replicaCount: '1', verifyReplicaCount: 'true'  
+	}
 	
 	stage 'Deploy to stage-project'
 	input 'Deploy to stage-project?'

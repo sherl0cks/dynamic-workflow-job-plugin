@@ -19,7 +19,6 @@ node {
 	String apiToken = readFile( 'apiTokenOutput.txt' ).trim()
   	openshiftBuild apiURL: 'master.openshift.redhat.com', authToken: apiToken, bldCfg: 'cool-application-name', checkForTriggeredDeployments: 'true', namespace: 'dev-project', showBuildLogs: 'true'
 	openshiftVerifyDeployment apiURL: 'master.openshift.redhat.com', authToken: apiToken, depCfg: 'cool-application-name', namespace: 'dev-project', replicaCount: '1', verifyReplicaCount: 'true'  
-	
 	}
 	
 	stage 'Deploy to stage-project'
